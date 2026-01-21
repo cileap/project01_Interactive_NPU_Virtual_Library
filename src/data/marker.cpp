@@ -1,5 +1,5 @@
 #include "marker.h"
-#include <QUuid>
+#include <QRandomGenerator>
 
 Marker::Marker(const QPointF& position,
                const QString& note,
@@ -19,7 +19,7 @@ QString Marker::generateId() {
     // 使用时间戳 + 随机数生成唯一ID
     return QString("marker-%1-%2")
         .arg(QDateTime::currentMSecsSinceEpoch())
-        .arg(qrand() % 10000);
+        .arg(QRandomGenerator::global()->bounded(10000));
 }
 
 QJsonObject Marker::toJson() const {

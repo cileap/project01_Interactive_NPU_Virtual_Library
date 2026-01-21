@@ -3,6 +3,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QDebug>
+#include <QScrollBar>
 
 MapView::MapView(QWidget* parent)
     : QGraphicsView(parent)
@@ -28,7 +29,7 @@ MapView::MapView(QWidget* parent)
     setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);  // 缩放中心为鼠标位置
-    setResizeAnchor(QGraphicsView::AnchorCenter);
+    setResizeAnchor(QGraphicsView::NoAnchor);
 
     // 创建默认地图占位符（灰色背景，带文字提示）
     QPixmap placeholderPixmap(static_cast<int>(m_mapSize.x()), static_cast<int>(m_mapSize.y()));
@@ -187,29 +188,33 @@ void MapView::wheelEvent(QWheelEvent* event) {
 }
 
 void MapView::mousePressEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        // 检查是否点击了标记
-        QGraphicsItem* item = scene()->itemAt(mapToScene(event->pos()), transform());
-        QGraphicsEllipseItem* markerItem = dynamic_cast<QGraphicsEllipseItem*>(item);
+    if (!scene()) {
+        QGraphicsView::mousePressEvent(event);
+        return;
+    }
 
-        if (markerItem) {
-            // 点击了标记，获取标记信息
-            QString markerId = markerItem->data(0).toString();
-            QString note = markerItem->data(1).toString();
-            QString createTime = markerItem->data(2).toString();
+    // 检查是否点击了标记
+    QGraphicsItem* item = scene()->itemAt(mapToScene(event->pos()), transform());
+    QGraphicsEllipseItem* markerItem = dynamic_cast<QGraphicsEllipseItem*>(item);
 
-            qDebug() << "Marker clicked:" << markerId << "Note:" << note;
+    if (markerItem) {
+        // 点击了标记，获取标记信息
+        QString markerId = markerItem->data(0).toString();
+        QString note = markerItem->data(1).toString();
 
-            // 如果是右键点击，显示上下文菜单
-            if (event->button() == Qt::RightButton) {
-                showMarkerContextMenu(event->pos(), markerId, note);
-            } else {
-                // 左键点击，发射信号
-                emit markerClicked(markerId);
-            }
-            return;
+        qDebug() << "Marker clicked:" << markerId << "Note:" << note;
+
+        if (event->button() == Qt::RightButton) {
+            // 右键点击，显示上下文菜单
+            showMarkerContextMenu(event->pos(), markerId, note);
+        } else {
+            // 左键点击，发射信号
+            emit markerClicked(markerId);
         }
+        return;
+    }
 
+    if (event->button() == Qt::LeftButton) {
         if (m_addMarkerMode) {
             // 添加标记模式：获取点击位置并发射信号
             QPointF scenePos = mapToScene(event->pos());
@@ -252,6 +257,11 @@ void MapView::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void MapView::contextMenuEvent(QContextMenuEvent* event) {
+    if (!scene()) {
+        QGraphicsView::contextMenuEvent(event);
+        return;
+    }
+
     // 检查是否右键点击了标记
     QGraphicsItem* item = scene()->itemAt(mapToScene(event->pos()), transform());
     QGraphicsEllipseItem* markerItem = dynamic_cast<QGraphicsEllipseItem*>(item);

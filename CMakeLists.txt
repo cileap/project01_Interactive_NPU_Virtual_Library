@@ -14,14 +14,18 @@ find_package(Qt6 REQUIRED COMPONENTS
     Sql
 )
 
-# 收集所有源文件
+# 收集所有源文件（排除 build 目录）
 file(GLOB_RECURSE SOURCES
-    "*.cpp"
-    "*.h"
-    "*.ui"
+    ${CMAKE_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/*.h
+    ${CMAKE_SOURCE_DIR}/*.cpp
+    ${CMAKE_SOURCE_DIR}/*.h
+    ${CMAKE_SOURCE_DIR}/*.ui
 )
 
-add_executable(LibraryMap WIN32 ${SOURCES})
+list(FILTER SOURCES EXCLUDE REGEX "${CMAKE_SOURCE_DIR}/build/.*")
+
+add_executable(LibraryMap ${SOURCES})
 
 target_link_libraries(LibraryMap PRIVATE
     Qt6::Widgets

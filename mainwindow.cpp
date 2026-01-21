@@ -2,6 +2,9 @@
 #include <QLabel>
 #include <QTextEdit>
 #include <QGroupBox>
+#include <QDir>
+#include <QDebug>
+#include <QImageReader>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -16,24 +19,28 @@ MainWindow::MainWindow(QWidget* parent)
     m_markerManager = new MarkerManager(this);
     m_apiClient = new ApiClient(this);
 
-    // 初始化UI
+    // 初始化UI（必须在连接信号之前）
     setupUi();
 
     // 设置窗口属性
     setWindowTitle("NPU 虚拟校园地图 - 交互系统");
     resize(1200, 800);
 
-    // 连接信号和槽
-    connect(m_timelineWidget, &TimelineWidget::indexChanged,
-            this, &MainWindow::onTimelineIndexChanged);
-    connect(m_timelineWidget, &TimelineWidget::restoreLatestRequested,
-            this, &MainWindow::onRestoreLatestClicked);
+    // 连接信号和槽（在 setupUi 之后，确保所有 UI 组件已创建）
+    if (m_timelineWidget) {
+        connect(m_timelineWidget, &TimelineWidget::indexChanged,
+                this, &MainWindow::onTimelineIndexChanged);
+        connect(m_timelineWidget, &TimelineWidget::restoreLatestRequested,
+                this, &MainWindow::onRestoreLatestClicked);
+    }
 
     connect(m_markerManager, &MarkerManager::markersChanged,
             this, &MainWindow::onMarkersChanged);
     connect(m_markerManager, &MarkerManager::currentSnapshotChanged,
             [this](int index, const MapSnapshot& snapshot) {
-                m_timelineWidget->setCurrentIndex(index);
+                if (m_timelineWidget) {
+                    m_timelineWidget->setCurrentIndex(index);
+                }
             });
 
     connect(m_apiClient, &ApiClient::snapshotsFetched,
@@ -42,7 +49,9 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::onNetworkError);
 
     // 初始化时间轴（空状态）
-    m_timelineWidget->setSnapshots(m_markerManager->snapshots());
+    if (m_timelineWidget) {
+        m_timelineWidget->setSnapshots(m_markerManager->snapshots());
+    }
 
     qDebug() << "MainWindow initialized";
 }
@@ -63,6 +72,21 @@ void MainWindow::setupUi() {
     // ========== 中央地图显示区域 ==========
     m_mapView = new MapView(this);
     mainLayout->addWidget(m_mapView, 1);  // stretch=1 占据剩余空间
+
+    // 增加 QImage 分配限制（默认 256MB，图片较大时需要）
+    QImageReader::setAllocationLimit(512);  // 设置为 512MB
+
+    // 加载地图图片（如果存在）
+    QPixmap mapPixmap("map.jpg");
+    qDebug() << "Loading map.jpg, isNull:" << mapPixmap.isNull()
+             << "size:" << mapPixmap.size();
+    if (!mapPixmap.isNull()) {
+        m_mapView->setMapPixmap(mapPixmap);
+        qDebug() << "Map loaded successfully";
+    } else {
+        qDebug() << "Failed to load map.jpg - file not found or invalid format";
+        qDebug() << "Current working dir:" << QDir::currentPath();
+    }
 
     // 连接地图视图信号
     connect(m_mapView, &MapView::addMarkerRequested,
