@@ -7,7 +7,7 @@
 ApiClient::ApiClient(QObject* parent)
     : QObject(parent)
     , m_networkManager(new QNetworkAccessManager(this))
-    , m_baseUrl("http://localhost:8080/api")  // 默认后端地址
+    , m_baseUrl("http://localhost:8888/api")  // 默认后端地址
 {
     // 连接网络管理器的完成信号
     connect(m_networkManager, &QNetworkAccessManager::finished,
@@ -43,18 +43,20 @@ void ApiClient::addMarker(const Marker& marker) {
         request.setRawHeader("X-User", m_username.toUtf8());
     }
 
+    // 发送完整的标记数据（包含 id, x, y 字段，与后端 Marker::fromJson 格式匹配）
     QJsonObject json;
-    json["position"] = QJsonObject{
-        {"x", marker.position().x()},
-        {"y", marker.position().y()}
-    };
+    json["id"] = marker.id();
+    json["x"] = marker.position().x();
+    json["y"] = marker.position().y();
     json["note"] = marker.note();
     json["color"] = marker.color().name();
+    json["createTime"] = marker.createTime().toString(Qt::ISODate);
+    json["createdBy"] = marker.createdBy();
 
     QJsonDocument doc(json);
     m_networkManager->post(request, doc.toJson());
 
-    qDebug() << "Adding marker:" << marker.id();
+    qDebug() << "Adding marker:" << marker.id() << "at" << marker.position();
 }
 
 void ApiClient::deleteMarker(const QString& markerId) {

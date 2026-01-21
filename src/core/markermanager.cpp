@@ -110,6 +110,12 @@ bool MarkerManager::restoreSnapshot(int index) {
     m_currentSnapshotIndex = index;
     const MapSnapshot& snapshot = m_snapshots[index];
 
+    // 更新当前标记列表
+    m_currentMarkers.clear();
+    for (const Marker& marker : snapshot.markers()) {
+        m_currentMarkers[marker.id()] = marker;
+    }
+
     qDebug() << "Restored snapshot:" << snapshot.snapshotId()
              << "at" << snapshot.timestamp();
 

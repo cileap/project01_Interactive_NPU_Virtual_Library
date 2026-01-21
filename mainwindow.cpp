@@ -145,7 +145,7 @@ QWidget* MainWindow::createControlPanel() {
             this, &MainWindow::onSyncFromServer);
     syncLayout->addWidget(m_syncButton);
 
-    QLabel* serverLabel = new QLabel("服务器: http://localhost:8080", panel);
+    QLabel* serverLabel = new QLabel("服务器: http://localhost:8888", panel);
     serverLabel->setStyleSheet("color: gray; font-size: 8pt;");
     serverLabel->setWordWrap(true);
     syncLayout->addWidget(serverLabel);
